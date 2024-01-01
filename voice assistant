@@ -1,0 +1,99 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import smtplib
+import pyowm
+import pytz
+import requests
+import json
+
+class VoiceAssistant:
+    def __init__(self):
+        self.recognizer = sr.Recognizer()
+        self.engine = pyttsx3.init()
+
+    def speak(self, text):
+        self.engine.say(text)
+        self.engine.runAndWait()
+
+    def listen(self):
+        with sr.Microphone() as source:
+            print("Listening...")
+            audio = self.recognizer.listen(source)
+
+        try:
+            print("Recognizing...")
+            query = self.recognizer.recognize_google(audio).lower()
+            print(f"User: {query}")
+            return query
+
+        except sr.UnknownValueError:
+            print("Sorry, I did not get that. Please repeat.")
+            return ""
+        except sr.RequestError as e:
+            print(f"Error connecting to Google API: {e}")
+            return ""
+
+    def send_email(self, to_email, subject, body):
+        # Implement email sending logic (SMTP)
+        pass
+
+    def get_weather(self, city):
+        owm_api_key = "YOUR_OPENWEATHERMAP_API_KEY"
+        owm = pyowm.OWM(owm_api_key)
+        
+        try:
+            observation = owm.weather_at_place(city)
+            weather = observation.get_weather()
+            temperature = weather.get_temperature('celsius')['temp']
+            status = weather.get_status()
+            return f"The weather in {city} is {status} with a temperature of {temperature} degrees Celsius."
+
+        except pyowm.exceptions.api_response_error.NotFoundError:
+            return "City not found. Please provide a valid city name."
+
+    def get_time(self):
+        current_time = datetime.datetime.now(pytz.timezone('UTC')).astimezone(pytz.timezone('Asia/Kolkata'))
+        return f"The current time is {current_time.strftime('%H:%M')}."
+
+    def perform_task(self, query):
+        if "send email" in query:
+            self.speak("Whom should I send the email to?")
+            to_email = self.listen()
+
+            if to_email:
+                self.speak("What should be the subject of the email?")
+                subject = self.listen()
+
+                self.speak("What should be the body of the email?")
+                body = self.listen()
+
+                self.send_email(to_email, subject, body)
+                self.speak("Email sent successfully.")
+
+        elif "weather" in query:
+            self.speak("Sure, for which city?")
+            city = self.listen()
+
+            if city:
+                weather_info = self.get_weather(chennai)
+                self.speak(weather_info)
+
+        elif "time" in query:
+            time_info = self.get_time()
+            self.speak(time_info)
+
+        else:
+            self.speak("I'm sorry, I don't understand that command.")
+
+if __name__ == "__main__":
+    voice_assistant = VoiceAssistant()
+
+    while True:
+        query = voice_assistant.listen()
+
+        if "exit" in query:
+            voice_assistant.speak("Goodbye!")
+            break
+
+        voice_assistant.perform_task(query)
